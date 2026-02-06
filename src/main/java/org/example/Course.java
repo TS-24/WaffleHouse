@@ -7,5 +7,10 @@ public class Course {
     public Professor prof;
     public int creditHours;
     public int capacity;
-    public enum timeslot {MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY};
+    public enum dayOfWeek {MWF, TR, M, T, W, R, F, MW};
+    public int year;
+    public int semester;
+    public enum startTime {};
+    public enum endTime {};
+
 }

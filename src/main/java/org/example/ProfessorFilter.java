@@ -1,7 +1,14 @@
 package org.example;
 
-public class ProfessorFilter {
-    public Filter apply() {
+import java.util.ArrayList;
 
+public class ProfessorFilter extends Filter {
+
+    public ProfessorFilter(Filter.FilterName filterName) {
+        super(filterName);
+    }
+
+    public ArrayList<Course> apply(FilterName filter, ArrayList<Course> courses) {
+        return null;
     }
 }

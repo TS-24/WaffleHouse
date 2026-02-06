@@ -3,6 +3,10 @@ package org.example;
 import java.util.ArrayList;
 
 public class Schedule {
-    ArrayList<Course> schedule;
+    private ArrayList<Course> schedule;
+    private Student student;
 
+    public ArrayList<Course> getSchedule() {
+        return schedule;
+    }
 }
