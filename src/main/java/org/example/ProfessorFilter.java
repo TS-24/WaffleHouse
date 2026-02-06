@@ -4,11 +4,13 @@ import java.util.ArrayList;
 
 public class ProfessorFilter extends Filter {
 
-    public ProfessorFilter(Filter.FilterName filterName) {
-        super(filterName);
-    }
+    private String name;
 
-    public ArrayList<Course> apply(FilterName filter, ArrayList<Course> courses) {
+    public ProfessorFilter(ArrayList<Course> courses, String name) {
+        super(courses);
+        this.name = name;
+    }
+    public ArrayList<Course> apply() {
         return null;
     }
 }

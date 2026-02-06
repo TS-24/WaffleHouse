@@ -2,13 +2,18 @@ package org.example;
 
 import java.util.ArrayList;
 
-public class TimeFilter {
+public class TimeFilter extends Filter {
 
-    public ProfessorFilter(Filter.FilterName filterName) {
-        super(filterName);
+    private int[] begin = new int[2];
+    private int[] end = new int[2];
+
+    public TimeFilter(ArrayList<Course> courses, int[] begin, int[] end) {
+        super(courses);
+        this.begin = begin;
+        this.end = end;
     }
 
-    public ArrayList<Course> apply(Filter.FilterName filter, ArrayList<Course> courses) {
+    public ArrayList<Course> apply() {
         return null;
     }
 }

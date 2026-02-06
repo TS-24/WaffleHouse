@@ -3,14 +3,11 @@ import java.util.ArrayList;
 
 public abstract class Filter {
 
-    public enum FilterName {
-        Professor, Department, Timeslot, Credits;
+    private ArrayList<Course> courses;
+
+    public Filter(ArrayList<Course> courses) {
+        this.courses = courses;
     }
 
-    private FilterName filtername;
-
-    public Filter(FilterName filterName) {
-        this.filtername = filterName;
-    }
-    // public abstract ArrayList<Course> apply( , ArrayList<Course> courses);
+    public abstract ArrayList<Course> apply();
 }
