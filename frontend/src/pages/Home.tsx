@@ -58,7 +58,7 @@ export default function Home() {
                 </header>
 
                 {/* Main Content */}
-                <main className="flex flex-1 min-h-full mb-16">
+                <main className="flex flex-1 justify-center min-h-full mb-16">
 
                     <TabsContent
                         value="search"
@@ -99,7 +99,7 @@ export default function Home() {
 
                     <TabsContent
                         value="calendar"
-                        className="flex-1 flex items-center justify-center"
+                        className="flex-1 flex items-center justify-center max-w-2/3"
                     >
                         <BigCalendar />
 
