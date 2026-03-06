@@ -6,6 +6,8 @@ import BigCalendar from "@/components/BigCalendar"
 import { DataTable } from "@/components/DataTable"
 import Footer from "@/components/Footer.tsx"
 import { cn } from "@/lib/utils"
+import * as React from "react";
+import FilterGroup from "@/components/FilterGroup.tsx";
 
 // TODO: Replace with actual response type from Java API
 interface Course {
@@ -68,7 +70,7 @@ export default function Home() {
         }
     }, [mode])
 
-    const handleSearch = async (e: React.FormEvent) => {
+    const handleSearch = async (e: React.SubmitEvent) => {
         e.preventDefault()
         if (!query.trim()) return
 
@@ -95,7 +97,7 @@ export default function Home() {
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <form
                         onSubmit={handleSearch}
-                        className="pointer-events-auto mt-2"
+                        className="pointer-events-auto mt-10"
                     >
                         {/*
                           Single container with border-b-2.
@@ -138,6 +140,7 @@ export default function Home() {
                               Search input — visible in search mode.
                               In calendar mode it collapses to width 0 and fades out.
                             */}
+                            {/* TODO: Disable search bar after search. Add button for "New search" */}
                             <div
                                 className={cn(
                                     "overflow-hidden transition-all duration-300 ease-in-out",
@@ -221,10 +224,14 @@ export default function Home() {
 
                 {/* Search results */}
                 {mode === "search" && results.length > 0 && (
+                    <div className="block min-w-4/5 mt-8">
+                    <FilterGroup className="p-4 bg-neutral-50" />
+
                     <div className="flex-1 flex flex-col items-center px-6 pt-8">
                         <div className="w-full max-w-4xl mx-auto">
                             <DataTable columns={columns} data={results} />
                         </div>
+                    </div>
                     </div>
                 )}
 
