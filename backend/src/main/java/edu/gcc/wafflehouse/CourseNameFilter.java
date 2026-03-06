@@ -2,7 +2,7 @@ package edu.gcc.wafflehouse;
 
 import java.util.ArrayList;
 
-public class CourseNameFilter extends Filter<Course> {
+public class CourseNameFilter extends Filter<String> {
     @Override
     public ArrayList<Course> apply(ArrayList<Course> courses, String origNameSubstr) {
         ArrayList<Course> matchingCourses = new ArrayList<>();
