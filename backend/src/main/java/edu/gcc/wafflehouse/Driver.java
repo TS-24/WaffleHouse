@@ -3,15 +3,17 @@ package edu.gcc.wafflehouse;
 import io.javalin.Javalin;
 
 /**
- * @author Tim
+ * Controller / Router
+ * @author Tim (last edited: Ina Tang)
  */
 public class Driver {
 
-    public static void main(String[] args) {
+    public static void registerRoutes(Javalin app) {
 
-        // create objects for search and schedule
+        // Create objects for search, student, and schedule
         Search search = new Search();
-        Schedule schedule = new Schedule();
+        Student student = new Student();
+        Schedule schedule = student.getSchedule();
 
         Javalin app = Javalin.create(
                 // TODO: add the location of FRONTEND files to the config: (config -> { config.staticFiles.add("public"); })
@@ -20,9 +22,8 @@ public class Driver {
         /* COURSE REQUESTS */
         app.get("/course", ctx -> ctx.json(search.getCourses()));
 
-        /* SCHEDULE REQUESTS */
-        app.get("/schedule", ctx -> ctx.json(schedule.getSchedule()));
-        app.post("/schedule", ctx -> {
+        // Get schedule
+        app.get("/schedule", ctx -> ctx.json(schedule));
 
         });
 
