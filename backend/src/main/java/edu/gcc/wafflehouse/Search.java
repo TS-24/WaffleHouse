@@ -39,6 +39,7 @@ public class Search {
         filteredResults = nameFilter.apply(filteredResults);
         filteredResults = profFilter.apply(filteredResults);
         // TODO: finish the list
+        // TODO: Either here or in Driver, make sure the Filter does nothing when the input is null
 
         return filteredResults;
     }
