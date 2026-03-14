@@ -96,9 +96,17 @@ export default function Home() {
         e.preventDefault();
         if (!query.trim()) return;
 
-        const res = await fetch(`http://localhost:7000/search?q=${query}`);
-        const searchRes: Course[] = await response.json();
-        setResults(searchRes);
+        try {
+            const res = await fetch(`http://localhost:7001/search?q=${query}`);
+            if (!res.ok) {
+                console.error(`Search failed: ${res.status} ${res.statusText}`);
+                return;
+            }
+            const searchRes: Course[] = await res.json();
+            setResults(searchRes);
+        } catch (err) {
+            console.error("Search error:", err);
+        }
 
 //         // Sample data filtering for testing (remove once API is connected)
 //         const q = query.trim().toLowerCase()
@@ -112,14 +120,14 @@ export default function Home() {
 
     const handleFilter = async (e: React.SubmitEvent) => {
         e.preventDefault();
-        const res = await fetch(`http://localhost:7000/filters`, {
+        const res = await fetch(`http://localhost:7001/filters`, {
             method: "POST",
               headers: {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify(postData)
         });
-        const filterRes: Course[] = await response.json();
+        const filterRes: Course[] = await res.json();
         setResults(filterRes);
     }
 
