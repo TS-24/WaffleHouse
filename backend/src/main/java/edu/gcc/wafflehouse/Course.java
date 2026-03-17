@@ -24,25 +24,42 @@ public class Course {
     private String name;
     private int code;
     private String department;
-    private Professor prof;
+    private ArrayList<Professor> faculty;
     private int creditHours;
     private int capacity;
     private int year;
-    private int semester;
+    private String semester;
     private long id;
-    private ArrayList<Timeslot> times;
+    private boolean isLab;
+    private boolean isOpen;
+    private String location;
 
-    public Course(String name, int code, String department, Professor prof, int creditHours, int capacity, int year, int semester, ArrayList<Timeslot> times) {
+    private ArrayList<Timeslot> times;
+    private int currentEnrollment;
+
+    public Course(String name, int code, String department, ArrayList<String> faculty, int creditHours, int capacity, int year, String semester, ArrayList<Timeslot> times) {
         this.name = name;
         this.code = code;
         this.department = department;
-        this.prof = prof;
         this.creditHours = creditHours;
         this.capacity = capacity;
         this.year = year;
         this.semester = semester;
         this.times = times;
+        this.currentEnrollment = 0;
         this.id = nextId++;
+        this.faculty = new ArrayList<>();
+
+        try {
+            for (String prof : faculty) {
+                Professor p = new Professor(prof);
+                this.faculty.add(p);
+            }
+        } catch (Exception e) {
+            System.out.println(e);
+            this.faculty = null;
+        }
+
     }
 
     public String getName() {
@@ -57,8 +74,8 @@ public class Course {
         return department;
     }
 
-    public Professor getProf() {
-        return prof;
+    public ArrayList<Professor> getFaculty() {
+        return faculty;
     }
 
     public int getCreditHours() {
@@ -73,12 +90,16 @@ public class Course {
         return year;
     }
 
-    public int getSemester() {
+    public String getSemester() {
         return semester;
     }
 
     public ArrayList<Timeslot> getTimes() {
         return times;
+    }
+
+    public int getCurrentEnrollment() {
+        return currentEnrollment;
     }
 
     public long getId() {
