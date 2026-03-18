@@ -81,7 +81,9 @@ export default function Home() {
     const [mode, setMode] = useState<Mode>("search")
     const [query, setQuery] = useState("")
     const [results, setResults] = useState<Course[]>([])
+    const [hasSearched, setHasSearched] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
+    const filterFormRef = useRef<HTMLFormElement>(null)
     const quote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], [])
 
     // Focus input when switching to search mode
@@ -104,6 +106,7 @@ export default function Home() {
             }
             const searchRes: Course[] = await res.json();
             setResults(searchRes);
+            setHasSearched(true);
         } catch (err) {
             console.error("Search error:", err);
         }
@@ -118,17 +121,43 @@ export default function Home() {
 //         setResults(filtered)
     }
 
-    const handleFilter = async (e: React.SubmitEvent) => {
+    const submitFilters = async () => {
+        if (!filterFormRef.current) return;
+        const formData = new FormData(filterFormRef.current);
+
+        const getString = (name: string): string | null => {
+            const val = formData.get(name);
+            return val && String(val).trim() ? String(val).trim() : null;
+        };
+
+        const postData = {
+            name: getString("name"),
+            prof: getString("prof"),
+            dept: getString("dept"),
+            credits: getString("credits"),
+            time: null,
+        };
+
+        try {
+            const res = await fetch(`http://localhost:7001/filters`, {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(postData)
+            });
+            if (!res.ok) {
+                console.error(`Filter failed: ${res.status} ${res.statusText}`);
+                return;
+            }
+            const filterRes: Course[] = await res.json();
+            setResults(filterRes);
+        } catch (err) {
+            console.error("Filter error:", err);
+        }
+    }
+
+    const handleFilter = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const res = await fetch(`http://localhost:7001/filters`, {
-            method: "POST",
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(postData)
-        });
-        const filterRes: Course[] = await res.json();
-        setResults(filterRes);
+        submitFilters();
     }
 
     return (
@@ -250,8 +279,8 @@ export default function Home() {
 
             {/* Main Content */}
             <main className="flex flex-1 justify-center min-h-full mb-16">
-                {/* Inspirational quote (shown when no search results) */}
-                {mode === "search" && results.length === 0 && (
+                {/* Inspirational quote (shown before any search) */}
+                {mode === "search" && !hasSearched && (
                     <div className="flex-1 flex flex-col items-center justify-center px-6">
                         <blockquote className="max-w-md text-center">
                             <p className="text-lg italic text-muted-foreground/60">
@@ -264,12 +293,11 @@ export default function Home() {
                     </div>
                 )}
 
-                {/* Search results */}
-                {mode === "search" && results.length > 0 && (
+                {/* Search results + filters */}
+                {mode === "search" && hasSearched && (
                     <div className="block min-w-4/5 mt-8">
-                        <form onSubmit={handleFilter}>
+                        <form ref={filterFormRef} onSubmit={handleFilter} onChange={() => submitFilters()}>
                             <FilterGroup className="p-4 bg-neutral-50" />
-                            {/* TODO: update filter in backend */}
                         </form>
                         <div className="flex-1 flex flex-col items-center px-6 pt-8">
                             <div className="w-full max-w-4xl mx-auto">

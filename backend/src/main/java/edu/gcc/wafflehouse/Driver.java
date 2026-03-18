@@ -8,13 +8,17 @@ import java.util.ArrayList;
  * @author Ina Tang
  */
 public class Driver {
+    /**
+     * Register routes / API endpoints for the app
+     * @param app Javalin app
+     * @param search Search class with all available courses loaded inside
+     */
+    public static void registerRoutes(Javalin app, Search search) {
 
-    public static void registerRoutes(Javalin app) {
-
-        // Create objects for search, student, and schedule
-        Search search = new Search();
+        // Create objects for student and schedule
         Student student = new Student();
         Schedule schedule = student.getSchedule();
+        ArrayList<Course> courses = schedule.getCourses();
 
         // Search database
         app.get("/search", ctx -> {
@@ -56,14 +60,8 @@ public class Driver {
             ctx.json(results);
         });
 
-        // Mostly testing
-        app.get("/courses", ctx -> ctx.json(search.getCourses()));
-
-        // Get schedule
-        app.get("/schedule", ctx -> ctx.json(schedule));
-
-        // Get all courses in user's schedule
-        app.get("/schedule/courses", ctx -> ctx.json(schedule.getCourses()));
+        // Get (courses in user's) schedule
+        app.get("/schedule", ctx -> ctx.json(courses));
 
         // Get course (for viewing course info)
         app.get("/course", ctx -> {
@@ -75,11 +73,15 @@ public class Driver {
         app.post("/course", ctx -> {
             Course course = ctx.bodyAsClass(Course.class);
             schedule.addCourse(course);
+            ctx.json(courses);  // return updated schedule
         });
 
-        // TODO: Delete course from schedule
-        // This should call a function in Schedule (you probably also need to create the function in Schedule)
-
+        // Remove course from schedule
+        app.delete("/course", ctx -> {
+            Course course = ctx.bodyAsClass(Course.class);
+            schedule.removeCourse(course);
+            ctx.json(courses);  // return updated schedule
+        });
     }
 
 }

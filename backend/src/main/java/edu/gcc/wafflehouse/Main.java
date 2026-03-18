@@ -45,7 +45,7 @@ public class Main {
             ctx.result("Error: " + e.getClass().getName() + " - " + e.getMessage());
         });
 
-        Driver.registerRoutes(app);
+        Driver.registerRoutes(app, search);
 
         // Start after we register routes, in case registering throws errors
         app.start(7001);

@@ -18,6 +18,6 @@ public class CourseNameFilter extends Filter {
      */
     @Override
     public boolean apply(Course course) {
-        return course.getName().contains(String.valueOf(getInput()));
+        return course.getName().toLowerCase().contains(String.valueOf(getInput()).toLowerCase());
     }
 }
