@@ -8,6 +8,7 @@ import Footer from "@/components/Footer.tsx"
 import { cn } from "@/lib/utils"
 import * as React from "react";
 import FilterGroup from "@/components/FilterGroup.tsx";
+import { useNavigate } from "react-router-dom";
 
 // TODO: Replace with actual response type from Java API
 // interface Course {
@@ -38,11 +39,17 @@ interface Course {
 const columns: ColumnDef<Course>[] = [
     { accessorKey: "department", header: "Department" },
     { accessorKey: "code", header: "Course code" },
-    { accessorKey: "name", header: "Course name" },
+    { accessorKey: "name", header: "Course name", cell: ({ row }) => (
+        <button
+            onClick={() => navigate(`/course/${row.original.id}`)}
+            className="text-left hover:underline cursor-pointer text-foreground"
+        >
+            {row.original.name}
+        </button>
+    )},
     { accessorKey: "creditHours", header: "Credit hours" },
     { accessorKey: "professor", header: "Professor" },
     { accessorKey: "time", header: "Days & Time" },
-//     { accessorKey: "capacity", header: "Capacity" },
 ];
 
 // TODO: Remove sample data once real API is connected
@@ -78,6 +85,7 @@ const QUOTES = [
 type Mode = "search" | "calendar"
 
 export default function Home() {
+    const navigate = useNavigate()
     const [mode, setMode] = useState<Mode>("search")
     const [query, setQuery] = useState("")
     const [results, setResults] = useState<Course[]>([])
