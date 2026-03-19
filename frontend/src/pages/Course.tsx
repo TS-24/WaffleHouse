@@ -76,8 +76,13 @@ function formatDay(day: string): string {
     return days[day] || day
 }
 
-function formatTime(time: string): string {
-    const [hours, minutes] = time.split(":").map(Number)
+function formatTime(time: string | number[]): string {
+    let hours: number, minutes: number
+    if (Array.isArray(time)) {
+        [hours = 0, minutes = 0] = time
+    } else {
+        [hours, minutes] = time.split(":").map(Number)
+    }
     const period = hours >= 12 ? "PM" : "AM"
     const displayHours = hours % 12 || 12
     return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`

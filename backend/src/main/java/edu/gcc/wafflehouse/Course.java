@@ -108,6 +108,53 @@ public class Course {
         return location;
     }
 
+    // Setters (needed for Jackson deserialization)
+    public void setId(long id) {
+        this.id = id;
+    }
+    public void setSubject(String subject) {
+        this.subject = subject;
+    }
+    public void setCode(int code) {
+        this.code = code;
+    }
+    public void setSection(char section) {
+        this.section = section;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public void setProfessors(ArrayList<Professor> professors) {
+        this.professors = professors;
+    }
+    public void setCreditHours(int creditHours) {
+        this.creditHours = creditHours;
+    }
+    public void setOpenSeats(int openSeats) {
+        this.openSeats = openSeats;
+    }
+    public void setTotalSeats(int totalSeats) {
+        this.totalSeats = totalSeats;
+    }
+    public void setYear(int year) {
+        this.year = year;
+    }
+    public void setSemester(String semester) {
+        this.semester = semester;
+    }
+    public void setTimes(ArrayList<Timeslot> times) {
+        this.times = times;
+    }
+    public void setIsLab(boolean isLab) {
+        this.isLab = isLab;
+    }
+    public void setIsOpen(boolean isOpen) {
+        this.isOpen = isOpen;
+    }
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
     public String timesToString() {
         StringBuilder sb = new StringBuilder();
         for (Timeslot time : times) {

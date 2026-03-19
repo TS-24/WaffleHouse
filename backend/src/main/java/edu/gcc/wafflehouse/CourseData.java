@@ -131,7 +131,7 @@ public class CourseData {
     }
 
     public int getYearFromSemester() {
-        return Integer.parseInt(semester.replaceAll("^\\d+", ""));
+        return Integer.parseInt(semester.split("_")[0]);
     }
 
     public String getSemesterFromSemester() {
