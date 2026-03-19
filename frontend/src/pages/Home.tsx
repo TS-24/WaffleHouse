@@ -1,8 +1,9 @@
-import { useState, useRef, useMemo } from "react"
+import { useState, useRef, useMemo, useEffect } from "react"
 import type { ColumnDef } from "@tanstack/react-table"  // use "import type" when what you're importing is a TS-only type
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import BigCalendar from "@/components/BigCalendar"
+import type { CourseEvent } from "@/components/BigCalendar"
 import { DataTable } from "@/components/DataTable"
 import Footer from "@/components/Footer.tsx"
 import type { Mode, Course } from "@/lib/types"         // same here
@@ -20,24 +21,28 @@ import { useNavigate } from "react-router-dom";
 //     { accessorKey: "description", header: "Description" },
 // ]
 
-// Columns / headers for table of search results
-const columns: ColumnDef<Course>[] = [
-    { accessorKey: "department", header: "Department" },
-    { accessorKey: "code", header: "Course code" },
-    { accessorKey: "name", header: "Course name", cell: ({ row }) => (
-        <button
-            onClick={() => navigate(`/course/${row.original.id}`)}
-            className="text-left hover:underline cursor-pointer text-foreground"
-        >
-            {row.original.name}
-        </button>
-    )},
-    { accessorKey: "section", header: "Section" },
-    { accessorKey: "creditHours", header: "Credit hours" },
-    { accessorKey: "professor", header: "Professor" },
-    { accessorKey: "time", header: "Days & Time" },
-];
+/** Format a LocalTime value (Jackson serializes as [hour, minute] or [hour, minute, second]) to "HH:MM:SS" */
+function formatTime(time: number[]): string {
+    const [h = 0, m = 0, s = 0] = time;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
 
+/** Transform backend Course objects (from /schedule or POST /course response) into CourseEvents for BigCalendar */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toEvents(courses: any[]): CourseEvent[] {
+    return courses.flatMap((course) =>
+        (course.times || []).map((slot: any) => ({
+            daysOfWeek: [String(slot.day)],
+            startTime: Array.isArray(slot.start_time) ? formatTime(slot.start_time) : String(slot.start_time),
+            endTime: Array.isArray(slot.end_time) ? formatTime(slot.end_time) : String(slot.end_time),
+            courseName: course.name,
+            courseCode: String(course.code),
+            courseDepartment: course.department,
+            courseSection: typeof course.section === 'string' ? course.section : String.fromCharCode(course.section),
+            courseLocation: course.location || '',
+        }))
+    );
+}
 // TODO: change this
 const QUOTES = [
     { text: "The fear of the Lord is the beginning of wisdom, and knowledge of the Holy One is understanding.", author: "Proverbs 9:10" },
@@ -55,8 +60,162 @@ export default function Home() {
     const [results, setResults] = useState<Course[]>([])
     const [hasSearched, setHasSearched] = useState(false)
     const [mode, setMode] = useState<Mode>("search")
+    const [events, setEvents] = useState<CourseEvent[]>([])
+    const [schedule, setSchedule] = useState<any[]>([])
     const filterFormRef = useRef<HTMLFormElement>(null)
     const quote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], [])
+
+    /** Update both raw schedule and transformed calendar events at once */
+    const updateSchedule = (data: any[]) => {
+        setSchedule(data);
+        setEvents(toEvents(data));
+    };
+
+    // Fetch schedule on mount
+    useEffect(() => {
+        fetch("http://localhost:7001/schedule")
+            .then((res) => res.json())
+            .then((data) => updateSchedule(data))
+            .catch((err) => console.error("Failed to fetch schedule:", err));
+    }, []);
+
+    // Columns / headers for table of search results
+    const columns: ColumnDef<Course>[] = [
+        { accessorKey: "department", header: "Dept" },
+        { accessorKey: "code", header: "Code" },
+        { accessorKey: "section", header: "Section" },
+        { accessorKey: "name", header: "Course name", cell: ({ row }) => (
+            <button
+                onClick={() => navigate(`/course/${(row.original as any).id ?? row.original.id}`)}
+                className="text-left hover:underline cursor-pointer text-foreground"
+            >
+                {row.original.name}
+            </button>
+        )},
+        { accessorKey: "creditHours", header: "Credits" },
+        {
+            id: "professor",
+            header: "Professor",
+            cell: ({ row }) => {
+                const faculty = (row.original as any).faculty;
+                if (!Array.isArray(faculty)) return null;
+                return faculty.map((p: any) => `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim()).join(", ");
+            },
+        },
+        {
+            id: "time",
+            header: "Days & Time",
+            cell: ({ row }) => {
+                const times = (row.original as any).times;
+                if (!Array.isArray(times)) return null;
+                return times.map((t: any) => {
+                    const day = String(t.day);
+                    const start = Array.isArray(t.start_time) ? formatTime(t.start_time) : String(t.start_time);
+                    const end = Array.isArray(t.end_time) ? formatTime(t.end_time) : String(t.end_time);
+                    return `${day} ${start} ${end}`;
+                }).join(", ");
+            },
+        },
+    //     { accessorKey: "capacity", header: "Capacity" },
+        {
+            id: "add",
+            header: "",
+            cell: ({ row }) => {
+                const course = row.original;
+                return (
+                    <Button
+                        size="sm"
+                        onClick={async () => {
+                            try {
+                                const res = await fetch("http://localhost:7001/course", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify(course),
+                                });
+                                if (!res.ok) {
+                                    const body = await res.text();
+                                    console.error(`Failed to add course: ${res.status} ${res.statusText}`, body);
+                                    return;
+                                }
+                                const data = await res.json();
+                                console.log("Course added successfully:", course.name);
+                                updateSchedule(data);
+                            } catch (err) {
+                                console.error("Error adding course:", err);
+                            }
+                        }}
+                    >
+                        Add
+                    </Button>
+                );
+            },
+        },
+    ];
+
+    // Columns for the schedule table (shown below calendar)
+    const scheduleColumns: ColumnDef<any>[] = [
+        { accessorKey: "department", header: "Dept" },
+        { accessorKey: "code", header: "Code" },
+        { accessorKey: "section", header: "Section" },
+        { accessorKey: "name", header: "Course name" },
+        {
+            id: "professor",
+            header: "Professor",
+            cell: ({ row }) => {
+                const faculty = row.original.faculty;
+                if (!Array.isArray(faculty)) return null;
+                return faculty.map((p: any) => `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim()).join(", ");
+            },
+        },
+        {
+            id: "time",
+            header: "Days & Time",
+            cell: ({ row }) => {
+                const times = row.original.times;
+                if (!Array.isArray(times)) return null;
+                return times.map((t: any) => {
+                    const day = String(t.day);
+                    const start = Array.isArray(t.start_time) ? formatTime(t.start_time) : String(t.start_time);
+                    const end = Array.isArray(t.end_time) ? formatTime(t.end_time) : String(t.end_time);
+                    return `${day} ${start} ${end}`;
+                }).join(", ");
+            },
+        },
+        {
+            id: "remove",
+            header: "",
+            cell: ({ row }) => {
+                const course = row.original;
+                return (
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={async () => {
+                            try {
+                                const res = await fetch("http://localhost:7001/course", {
+                                    method: "DELETE",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify(course),
+                                });
+                                if (!res.ok) {
+                                    const body = await res.text();
+                                    console.error(`Failed to remove course: ${res.status} ${res.statusText}`, body);
+                                    return;
+                                }
+                                const data = await res.json();
+                                console.log("Course removed successfully:", course.name);
+                                updateSchedule(data);
+                            } catch (err) {
+                                console.error("Error removing course:", err);
+                            }
+                        }}
+                    >
+                        Remove
+                    </Button>
+                );
+            },
+        },
+    ];
 
     const submitFilters = async () => {
         if (!filterFormRef.current) return;
@@ -163,8 +322,16 @@ export default function Home() {
 
                 {/* Calendar */}
                 {mode === "calendar" && (
-                    <div className="flex-1 flex items-center justify-center max-w-2/3">
-                        <BigCalendar />
+                    <div className="flex-1 flex flex-col items-center max-w-2/3 mt-8">
+                        <BigCalendar events={events} />
+
+                        {/* Schedule list with remove buttons */}
+                        {schedule.length > 0 && (
+                            <div className="w-full max-w-4xl mx-auto mt-8">
+                                <h2 className="text-lg font-semibold mb-3">My Schedule</h2>
+                                <DataTable columns={scheduleColumns} data={schedule} />
+                            </div>
+                        )}
                     </div>
                 )}
             </main>

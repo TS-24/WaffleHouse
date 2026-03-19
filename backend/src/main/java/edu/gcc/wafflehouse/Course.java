@@ -1,11 +1,6 @@
-/**
- * @author Sam Mayfield (pickleroot)
- */
-
 package edu.gcc.wafflehouse;
 
 import java.util.ArrayList;
-
 import java.time.format.DateTimeFormatter;
 
 public class Course {
@@ -27,6 +22,9 @@ public class Course {
 
     private ArrayList<Timeslot> times;
     private int currentEnrollment;
+
+    // For Jackson deserialization
+    public Course() {}
 
     public Course(String name, int code, char section, String department, ArrayList<String> faculty, int creditHours, int capacity, String semester, ArrayList<Timeslot> times) {
         this.name = name;
