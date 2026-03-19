@@ -96,4 +96,22 @@ public class Course {
     public long getID() {
         return id;
     }
+
+    public String timesToString() {
+        StringBuilder sb = new StringBuilder();
+        for (Timeslot time : times) {
+            sb.append(time.toString());
+        }
+
+        return sb.toString();
+    }
+
+    public String facultyToString() {
+        StringBuilder sb = new StringBuilder();
+        for (Professor prof : faculty) {
+            sb.append(prof.toString());
+        }
+
+        return sb.toString();
+    }
 }
