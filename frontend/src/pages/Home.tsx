@@ -40,14 +40,16 @@ function toMinutes(time: number[]): number {
  * Returns true if the candidate course has a timeslot that overlaps with any
  * timeslot of any course already in the schedule.
  *
- * Two timeslots overlap if they share a day AND one starts before the other ends.
- * This mirrors the standard interval overlap check: A overlaps B if A.start < B.end && A.end > B.start.
+ * Two timeslots overlap if they share a day AND one starts before the other ends:
+ *   A overlaps B  iff  A.start < B.end  &&  A.end > B.start
+ *
+ * NOTE: callers are responsible for excluding the candidate from the schedule
+ * before calling this, otherwise a course will appear to conflict with itself.
  */
 function courseConflicts(candidate: any, schedule: any[]): boolean {
     for (const scheduled of schedule) {
         for (const candidateSlot of (candidate.times || [])) {
             for (const scheduledSlot of (scheduled.times || [])) {
-                // Must be the same day of the week to conflict
                 if (String(candidateSlot.day) !== String(scheduledSlot.day)) continue;
 
                 const candStart  = toMinutes(candidateSlot.start_time);
@@ -88,13 +90,6 @@ export default function Home() {
     const filterFormRef = useRef<HTMLFormElement>(null)
     const quote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], [])
 
-    /**
-     * Fetch the current schedule from the backend and update both the raw
-     * schedule state and the calendar events derived from it.
-     *
-     * Extracted into its own function so it can be called after any add/remove,
-     * keeping the frontend in sync with the backend as the source of truth.
-     */
     const fetchSchedule = useCallback(() => {
         fetch("http://localhost:7001/schedule")
             .then((res) => res.json())
@@ -105,25 +100,64 @@ export default function Home() {
             .catch((err) => console.error("Failed to fetch schedule:", err));
     }, []);
 
-    // Fetch schedule once on mount
     useEffect(() => {
         fetchSchedule();
     }, [fetchSchedule]);
 
     /**
-     * The set of course IDs that conflict with the current schedule.
-     * Recomputed automatically whenever `results` or `schedule` changes —
-     * so adding or dropping a course instantly re-evaluates all displayed rows.
+     * IDs of courses that are already in the user's schedule.
+     * Checked before conflict detection — a course should not be flagged
+     * as conflicting with itself.
+     */
+    const scheduledIds = useMemo<Set<number>>(() => {
+        return new Set(schedule.map((c: any) => c.id));
+    }, [schedule]);
+
+    /**
+     * IDs of courses that conflict with the schedule but are NOT already in it.
+     * Courses already in the schedule are handled separately (they get a Remove
+     * button instead of being flagged as conflicts).
      */
     const conflictingIds = useMemo<Set<number>>(() => {
         const ids = new Set<number>();
         for (const course of results) {
+            // Skip courses already in the schedule — they would conflict with
+            // themselves by definition and are handled by scheduledIds instead
+            if (scheduledIds.has(course.id)) continue;
             if (courseConflicts(course, schedule)) {
                 ids.add(course.id);
             }
         }
         return ids;
-    }, [results, schedule]);
+    }, [results, schedule, scheduledIds]);
+
+    /**
+     * Shared remove handler used in both the search results table and the
+     * schedule table below the calendar.
+     */
+    const handleRemove = useCallback(async (course: any) => {
+        try {
+            const res = await fetch("http://localhost:7001/course", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(course),
+            });
+            if (!res.ok) {
+                const body = await res.text();
+                console.error(`Failed to remove course: ${res.status} ${res.statusText}`, body);
+                return;
+            }
+            const removed: boolean = await res.json();
+            if (removed) {
+                console.log("Course removed successfully:", course.name);
+                fetchSchedule();
+            } else {
+                console.warn("Course was not removed (not in schedule?):", course.name);
+            }
+        } catch (err) {
+            console.error("Error removing course:", err);
+        }
+    }, [fetchSchedule]);
 
     // Columns for the search results table
     const columns: ColumnDef<Course>[] = [
@@ -134,6 +168,8 @@ export default function Home() {
             accessorKey: "name",
             header: "Course name",
             cell: ({ row }) => (
+                // Course name is always clickable, even when the row is greyed out.
+                // pointer-events-none is intentionally NOT applied to this cell.
                 <button
                     onClick={() => navigate(`/course/${row.original.id}`)}
                     className="text-left hover:underline cursor-pointer text-foreground"
@@ -167,16 +203,35 @@ export default function Home() {
             },
         },
         {
-            id: "add",
+            id: "action",
             header: "",
             cell: ({ row }) => {
                 const course = row.original;
-                const conflicts = conflictingIds.has(course.id);
+                const inSchedule = scheduledIds.has(course.id);
+                const conflicts  = conflictingIds.has(course.id);
+
+                // Already in the schedule — replace Add with Remove
+                if (inSchedule) {
+                    return (
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleRemove(course)}
+                        >
+                            Remove
+                        </Button>
+                    );
+                }
+
+                // Time conflict — show nothing (row is already greyed out)
+                if (conflicts) {
+                    return null;
+                }
+
+                // Normal case — show Add
                 return (
                     <Button
                         size="sm"
-                        disabled={conflicts}           // prevent clicking on conflicting courses
-                        title={conflicts ? "This course conflicts with your schedule" : undefined}
                         onClick={async () => {
                             try {
                                 const res = await fetch("http://localhost:7001/course", {
@@ -192,8 +247,6 @@ export default function Home() {
                                 const added: boolean = await res.json();
                                 if (added) {
                                     console.log("Course added successfully:", course.name);
-                                    // Re-fetch the schedule from the backend so the frontend
-                                    // reflects the authoritative server state
                                     fetchSchedule();
                                 } else {
                                     console.warn("Course was not added (already in schedule?):", course.name);
@@ -242,41 +295,15 @@ export default function Home() {
         {
             id: "remove",
             header: "",
-            cell: ({ row }) => {
-                const course = row.original;
-                return (
-                    <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={async () => {
-                            try {
-                                const res = await fetch("http://localhost:7001/course", {
-                                    method: "DELETE",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify(course),
-                                });
-                                if (!res.ok) {
-                                    const body = await res.text();
-                                    console.error(`Failed to remove course: ${res.status} ${res.statusText}`, body);
-                                    return;
-                                }
-                                const removed: boolean = await res.json();
-                                if (removed) {
-                                    console.log("Course removed successfully:", course.name);
-                                    // Re-fetch schedule from the backend to keep frontend in sync
-                                    fetchSchedule();
-                                } else {
-                                    console.warn("Course was not removed (not in schedule?):", course.name);
-                                }
-                            } catch (err) {
-                                console.error("Error removing course:", err);
-                            }
-                        }}
-                    >
-                        Remove
-                    </Button>
-                );
-            },
+            cell: ({ row }) => (
+                <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleRemove(row.original)}
+                >
+                    Remove
+                </Button>
+            ),
         },
     ];
 
@@ -378,15 +405,24 @@ export default function Home() {
                         <div className="flex-1 flex flex-col items-center px-6 pt-8">
                             <div className="w-full max-w-4xl mx-auto">
                                 {/*
-                                  * Pass getRowClassName to DataTable so conflicting rows are greyed out.
-                                  * See the note below about the small change needed in DataTable.tsx.
+                                  * Rows for courses in the schedule or with time conflicts are
+                                  * greyed out using opacity-40.
+                                  *
+                                  * pointer-events-none is intentionally NOT used here — the course
+                                  * name link must stay clickable on greyed-out rows. Each cell
+                                  * handles its own interactivity (the Remove button is always active,
+                                  * conflict rows show no button at all).
+                                  *
+                                  * Requires a small change to DataTable.tsx:
+                                  *   - Add `getRowClassName?: (row: TData) => string` to props
+                                  *   - Apply it to each <tr>: className={cn("border-b ...", getRowClassName?.(row.original))}
                                   */}
                                 <DataTable
                                     columns={columns}
                                     data={results}
                                     getRowClassName={(course: any) =>
-                                        conflictingIds.has(course.id)
-                                            ? "opacity-40 pointer-events-none select-none"
+                                        scheduledIds.has(course.id) || conflictingIds.has(course.id)
+                                            ? "opacity-40"
                                             : ""
                                     }
                                 />
