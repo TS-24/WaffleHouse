@@ -186,6 +186,51 @@ export default function Course() {
         navigate("/")
     }
 
+    const handleAdd = async () => {
+        if (!course) return;
+        try {
+            const res = await fetch("http://localhost:7001/course", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(course),
+            });
+            if (!res.ok) {
+                console.error(`Failed to add course: ${res.status} ${res.statusText}`);
+                return;
+            }
+            const added: boolean = await res.json();
+            if (added) {
+                // Re-fetch schedule so isInSchedule updates and the button switches to Remove
+                const scheduleRes = await fetch("http://localhost:7001/schedule");
+                if (scheduleRes.ok) setSchedule(await scheduleRes.json());
+            }
+        } catch (err) {
+            console.error("Error adding course:", err);
+        }
+    }
+
+    const handleRemove = async () => {
+        if (!course) return;
+        try {
+            const res = await fetch("http://localhost:7001/course", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(course),
+            });
+            if (!res.ok) {
+                console.error(`Failed to remove course: ${res.status} ${res.statusText}`);
+                return;
+            }
+            const removed: boolean = await res.json();
+            if (removed) {
+                const scheduleRes = await fetch("http://localhost:7001/schedule");
+                if (scheduleRes.ok) setSchedule(await scheduleRes.json());
+            }
+        } catch (err) {
+            console.error("Error removing course:", err);
+        }
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col bg-background">
@@ -248,9 +293,18 @@ export default function Course() {
 
                     {/* Schedule status banner — shown only if relevant */}
                     {isInSchedule && (
-                        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-200 border border-green-200 dark:border-green-800">
-                            <CheckCircle className="h-5 w-5 shrink-0" />
-                            <span className="text-sm font-medium">This course is in your schedule.</span>
+                        <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-200 border border-green-200 dark:border-green-800">
+                            <div className="flex items-center gap-3">
+                                <CheckCircle className="h-5 w-5 shrink-0" />
+                                <span className="text-sm font-medium">This course is in your schedule.</span>
+                            </div>
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={handleRemove}
+                            >
+                                Remove
+                            </Button>
                         </div>
                     )}
 
@@ -269,6 +323,15 @@ export default function Course() {
                                     </li>
                                 ))}
                             </ul>
+                        </div>
+                    )}
+
+                    {/* Add button — only shown when the course is not in the schedule and has no conflicts */}
+                    {!isInSchedule && !hasConflicts && (
+                        <div className="flex justify-end">
+                            <Button onClick={handleAdd}>
+                                Add to Schedule
+                            </Button>
                         </div>
                     )}
 

@@ -405,13 +405,10 @@ export default function Home() {
                         <div className="flex-1 flex flex-col items-center px-6 pt-8">
                             <div className="w-full max-w-4xl mx-auto">
                                 {/*
-                                  * Rows for courses in the schedule or with time conflicts are
-                                  * greyed out using opacity-40.
-                                  *
-                                  * pointer-events-none is intentionally NOT used here — the course
-                                  * name link must stay clickable on greyed-out rows. Each cell
-                                  * handles its own interactivity (the Remove button is always active,
-                                  * conflict rows show no button at all).
+                                  * For courses that can't be added (already in schedule or time
+                                  * conflict), all cells except the last (action) column are dimmed
+                                  * using a Tailwind arbitrary child variant. This keeps the Remove
+                                  * button at full color while greying out the text.
                                   *
                                   * Requires a small change to DataTable.tsx:
                                   *   - Add `getRowClassName?: (row: TData) => string` to props
@@ -422,7 +419,10 @@ export default function Home() {
                                     data={results}
                                     getRowClassName={(course: any) =>
                                         scheduledIds.has(course.id) || conflictingIds.has(course.id)
-                                            ? "opacity-40"
+                                            // Grey out all cells except the last one (the action column),
+                                            // so the Remove button keeps its full color while the rest
+                                            // of the row is visually dimmed.
+                                            ? "[&>td:not(:last-child)]:opacity-30"
                                             : ""
                                     }
                                 />
