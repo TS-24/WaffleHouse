@@ -1,5 +1,9 @@
 plugins {
-    id 'java'
+    id 'application'
+}
+
+application {
+    mainClass = 'edu.gcc.wafflehouse.Main'
 }
 
 group = 'edu.gcc.wafflehouse'
