@@ -2,12 +2,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import Footer from "@/components/Footer.tsx"
 import { cn, transformCourse, formatDay, formatTime, formatProfessorName, toMinutes } from "@/lib/utils"
-import type {BackendCourse, DisplayCourse} from "@/lib/utils" 
+import type {BackendCourse, DisplayCourse} from "@/lib/types" 
 import * as React from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, Clock, BookOpen, Users, MapPin, Calendar, GraduationCap, CheckCircle, AlertTriangle } from "lucide-react"
-import { Error } from "node_modules/@base-ui/react/esm/field/index.parts"
-import { getCourse, getSchedule } from "@/services/schedule"
+import { getCourse, getSchedule, addCourseToSchedule, removeCourseFromSchedule } from "@/services/schedule"
+import { supabase } from "@/lib/supabase"
 
 
 
@@ -62,10 +62,16 @@ export default function Course() {
             }
 
             try {
-                // 🔥 Replace with your Supabase service functions
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    setError("User not authenticated");
+                    setLoading(false);
+                    return;
+                }
+
                 const [courseData, scheduleData] = await Promise.all([
                     getCourse(courseId),
-                    getSchedule(userId)
+                    getSchedule(user.id)
                 ]);
 
                 // ✅ set course
@@ -85,10 +91,6 @@ export default function Course() {
         fetchData();
     }, [params.id]);
 
-    ...
-}
-
-
     // TODO: make sure that we save every search into state
     const handleBack = () => {
         navigate("/")
@@ -97,26 +99,22 @@ export default function Course() {
     const handleAdd = async () => {
         if (!course) return;
         try {
-            const res = await fetch("http://localhost:7001/course", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(course),
-            });
-            if (!res.ok) {
-                console.error(`Failed to add course: ${res.status} ${res.statusText}`);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                console.error("User not authenticated");
                 return;
             }
-            const added: boolean = await res.json();
-            if (added) {
-                // Re-fetch both schedule (to flip isInSchedule) and the course itself
-                // (to get the updated openSeats from the backend)
-                const [scheduleRes, courseRes] = await Promise.all([
-                    fetch("http://localhost:7001/schedule"),
-                    fetch(`http://localhost:7001/course/${course.id}`),
-                ]);
-                if (scheduleRes.ok) setSchedule(await scheduleRes.json());
-                if (courseRes.ok) setCourse(transformCourse(await courseRes.json()));
-            }
+
+            await addCourseToSchedule(user.id, String(course.id));
+
+            // Re-fetch both schedule and the course itself
+            // (to get the updated openSeats from the backend)
+            const [scheduleData, courseData] = await Promise.all([
+                getSchedule(user.id),
+                getCourse(String(course.id)),
+            ]);
+            setSchedule(scheduleData);
+            setCourse(transformCourse(courseData));
         } catch (err) {
             console.error("Error adding course:", err);
         }
@@ -125,26 +123,22 @@ export default function Course() {
     const handleRemove = async () => {
         if (!course) return;
         try {
-            const res = await fetch("http://localhost:7001/course", {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(course),
-            });
-            if (!res.ok) {
-                console.error(`Failed to remove course: ${res.status} ${res.statusText}`);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                console.error("User not authenticated");
                 return;
             }
-            const removed: boolean = await res.json();
-            if (removed) {
-                // Re-fetch both schedule (to flip isInSchedule) and the course itself
-                // (to get the updated openSeats from the backend)
-                const [scheduleRes, courseRes] = await Promise.all([
-                    fetch("http://localhost:7001/schedule"),
-                    fetch(`http://localhost:7001/course/${course.id}`),
-                ]);
-                if (scheduleRes.ok) setSchedule(await scheduleRes.json());
-                if (courseRes.ok) setCourse(transformCourse(await courseRes.json()));
-            }
+
+            await removeCourseFromSchedule(user.id, String(course.id));
+
+            // Re-fetch both schedule and the course itself
+            // (to get the updated openSeats from the backend)
+            const [scheduleData, courseData] = await Promise.all([
+                getSchedule(user.id),
+                getCourse(String(course.id)),
+            ]);
+            setSchedule(scheduleData);
+            setCourse(transformCourse(courseData));
         } catch (err) {
             console.error("Error removing course:", err);
         }

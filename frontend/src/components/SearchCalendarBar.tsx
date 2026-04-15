@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { Mode, Course } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase"
+import { searchCourses } from "@/services/search"
 
 
 interface SearchCalendarBarProps {
@@ -30,19 +30,9 @@ export default function SearchCalendarBar({ hasSearched, setHasSearched, setResu
         if (!query.trim()) return;
 
         try {
-            const { data, error } = await supabase
-                .from('courses')
-                .select('*')
-                .or(`name.ilike.%${query}%,subject.ilike.%${query}%`);
-
-            if (error) {
-                console.error(`Search failed: ${error.message}`);
-                return;
-            }
-
-            setResults(data as Course[]);
+            const results = await searchCourses(query);
+            setResults(results);
             setHasSearched(true);
-
         } catch (err) {
             console.error("Search error:", err);
         }

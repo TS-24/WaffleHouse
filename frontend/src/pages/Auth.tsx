@@ -1,8 +1,8 @@
 import {supabase} from "@/lib/supabase"
-import { use, useState } from "react"
-
-// signup api
-
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
 export default function Auth() {
     const [loading, setLoading] = useState<boolean>(false);
@@ -10,7 +10,7 @@ export default function Auth() {
     const [password, setPassword] = useState<string>('');
     const [hasAccount, setHasAccount] = useState<boolean>(false);
 
-    const handleAuth = async (e: React.SubmitEvent) => {
+    const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
 
@@ -19,46 +19,73 @@ export default function Auth() {
             : await supabase.auth.signInWithPassword({ email, password });
 
         if (error) {
-        alert(error.message);
+            alert(error.message);
         } else {
-        alert(hasAccount ? 'Check your email for the confirmation link!' : 'Logged in successfully!');
+            alert(hasAccount ? 'Check your email for the confirmation link!' : 'Logged in successfully!');
         }
         setLoading(false);
-  };
+    };
 
-  return(
-    <div style={{ maxWidth: '400px', margin: '2rem auto', fontFamily: 'sans-serif' }}>
-      <h2>{hasAccount ? 'Create Account' : 'Welcome Back'}</h2>
-      
-      <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Processing...' : hasAccount ? 'Sign Up' : 'Login'}
-        </button>
-      </form>
+    return(
+        <div className="min-h-screen flex items-center justify-center bg-background px-4">
+            <Card className="w-full max-w-md">
+                <CardHeader>
+                    <CardTitle>{hasAccount ? 'Create Account' : 'Welcome Back'}</CardTitle>
+                    <CardDescription>
+                        {hasAccount ? 'Sign up to get started' : 'Sign in to your account'}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleAuth} className="flex flex-col gap-4">
+                        <div className="space-y-2">
+                            <label htmlFor="email" className="text-sm font-medium text-foreground">
+                                Email
+                            </label>
+                            <Input
+                                id="email"
+                                type="email"
+                                placeholder="you@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                disabled={loading}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label htmlFor="password" className="text-sm font-medium text-foreground">
+                                Password
+                            </label>
+                            <Input
+                                id="password"
+                                type="password"
+                                placeholder="Enter your password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                disabled={loading}
+                            />
+                        </div>
+                        <Button type="submit" disabled={loading} className="w-full">
+                            {loading ? 'Processing...' : hasAccount ? 'Sign Up' : 'Login'}
+                        </Button>
+                    </form>
 
-      <p style={{ marginTop: '1rem' }}>
-        {hasAccount ? 'Already have an account?' : 'Need an account?'}
-        <button 
-          onClick={() => setHasAccount(!hasAccount)} 
-          style={{ background: 'none', border: 'none', color: 'blue', cursor: 'pointer', textDecoration: 'underline' }}
-        >
-          {hasAccount ? 'Login' : 'Sign Up'}
-        </button>
-      </p>
-    </div>
-  )
+                    <div className="mt-6 text-center">
+                        <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                            <span>
+                                {hasAccount ? 'Already have an account?' : 'Need an account?'}
+                            </span>
+                            <Button 
+                                variant="link"
+                                onClick={() => setHasAccount(!hasAccount)}
+                                className="p-0 h-auto text-sm"
+                            >
+                                {hasAccount ? 'Login' : 'Sign Up'}
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
 }

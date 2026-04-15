@@ -68,3 +68,11 @@ export interface DisplayCourse {
     isOpen: boolean
     location: string
 }
+
+export interface SearchCalendarBarProps {
+  hasSearched: boolean;
+  setHasSearched: (value: boolean) => void;
+  setResults: (results: Course[]) => void;
+  mode: Mode;
+  setMode: (mode: Mode) => void;
+}
