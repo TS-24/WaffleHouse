@@ -154,7 +154,7 @@ export async function filterCourses(filters: FilterParams): Promise<Course[]> {
         }
 
         // Transform courses
-        const courses = (data as RawCourseData[]).map(transformRawCourse);
+        let courses = (data as RawCourseData[]).map(transformRawCourse);
         const courseIds = courses.map(c => c.id);
 
         // Fetch course times

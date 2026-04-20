@@ -59,6 +59,8 @@ function courseConflicts(candidate: any, schedule: any[]): boolean {
 
 /** Transform backend Course objects into CourseEvents for BigCalendar */
 function toEvents(courses: any[]): CourseEvent[] {
+    console.log(courses);
+
     return courses.flatMap((course) =>
         (course.times || []).map((slot: any) => ({
             daysOfWeek: [String(slot.day)],
@@ -125,8 +127,10 @@ export default function Home() {
                 return;
             }
             const data = await getSchedule(user.id);
+            // console.log(data);
             setSchedule(data || []);
             setEvents(toEvents(data || []));
+
         } catch (err) {
             console.error("Failed to fetch schedule:", err);
         }

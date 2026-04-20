@@ -27,11 +27,14 @@ export async function getSchedule(userId: string) {
     throw new Error("User is not authenticated");
   }
 
+  // get the course ids. 
   const { data, error } = await supabase
     .from('enrollments')
     .select('*, courses(*)')   // joins course data in one call
     .eq('user_id', userId);
   if (error) throw error;
+
+  //console.log(data);
   
   if (data && data.length > 0) {
     // Fetch course times for all courses in the schedule
