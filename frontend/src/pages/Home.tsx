@@ -1,13 +1,11 @@
-import { useState, useRef, useMemo, useEffect, useCallback } from "react"
+import { useState, useRef, useMemo, useCallback } from "react"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import BigCalendar from "@/components/calendar/BigCalendar"
-import type { CourseEvent } from "@/components/calendar/BigCalendar"
 import { DataTable } from "@/components/data/DataTable"
 import Footer from "@/components/layout/Footer.tsx"
 import type { Mode, Course } from "@/lib/types"
-import * as React from "react";
 import SearchCalendarBar from "@/components/search/SearchCalendarBar.tsx";
 import FilterGroup from "@/components/search/FilterGroup.tsx";
 import { useNavigate } from "react-router-dom";
@@ -18,70 +16,25 @@ import { downloadScheduleIcs } from "@/lib/ical"
 import { QUOTES } from "@/lib/quotes"
 import { courseConflicts } from "@/lib/conflicts"
 import { toEvents } from "@/lib/courseEvents"
-import { getSchedule, addCourseToSchedule, removeCourseFromSchedule, getCourse } from "@/services/schedule"
+import { useAuthRedirect } from "@/hooks/useAuthRedirect"
+import { useToast } from "@/hooks/useToast"
+import { useSchedule } from "@/hooks/useSchedule"
+import { addCourseToSchedule, removeCourseFromSchedule, getCourse } from "@/services/schedule"
 import { filterCourses } from "@/services/search"
 
 
 export default function Home() {
     const navigate = useNavigate()
+    useAuthRedirect()
+
     const [results, setResults] = useState<Course[]>([])
     const [hasSearched, setHasSearched] = useState(false)
     const [mode, setMode] = useState<Mode>("search")
-    const [events, setEvents] = useState<CourseEvent[]>([])
-    const [schedule, setSchedule] = useState<Course[]>([])
     const filterFormRef = useRef<HTMLFormElement>(null)
     const quote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], [])
 
-    // Check authentication on mount and redirect to Auth page if not authenticated
-    useEffect(() => {
-        const checkAuth = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                navigate("/auth");
-            }
-        };
-        checkAuth();
-    }, [navigate]);
-
-    // Listen for auth state changes and redirect if logged out
-    useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_OUT' || !session) {
-                navigate("/auth");
-            }
-        });
-
-        return () => {
-            subscription?.unsubscribe();
-        };
-    }, [navigate]);
-
-    /**
-     * Transient notification shown at the top of the page after save/load.
-     * Cleared automatically after 3 seconds.
-     */
-    const [toast, setToast] = React.useState<{ message: string; ok: boolean } | null>(null);
-    const showToast = useCallback((message: string, ok: boolean) => {
-        setToast({ message, ok });
-        setTimeout(() => setToast(null), 3000);
-    }, []);
-
-    const fetchSchedule = useCallback(async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                console.error("User not authenticated");
-                return;
-            }
-            const data = await getSchedule(user.id);
-            // console.log(data);
-            setSchedule(data || []);
-            setEvents(toEvents(data || []));
-
-        } catch (err) {
-            console.error("Failed to fetch schedule:", err);
-        }
-    }, []);
+    const { toast, showToast } = useToast()
+    const { schedule, events, setSchedule, setEvents, fetchSchedule } = useSchedule()
 
     /**
      * Fetch a single course by ID and replace its entry in `results` state.
@@ -115,10 +68,6 @@ export default function Home() {
             console.error("Failed to refresh course in results:", err);
         }
     }, []);
-
-    useEffect(() => {
-        fetchSchedule();
-    }, [fetchSchedule]);
 
     /**
      * IDs of courses that are already in the user's schedule.
