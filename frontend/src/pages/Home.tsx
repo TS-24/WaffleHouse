@@ -171,10 +171,17 @@ export default function Home() {
                 {mode === "search" && hasSearched && (
                     <SidebarProvider defaultOpen={true} className="min-h-0">
                         <FiltersSidebar setResults={setResults} />
+                        {/*
+                          * Trigger is a direct sibling of the Sidebar so it can
+                          * use `peer-data-*` to slide horizontally with the
+                          * sidebar's open/collapsed state via CSS only — no
+                          * React re-renders needed. `fixed` pins it to the
+                          * viewport so it overlaps the header vertically.
+                          */}
+                        <div className="fixed top-2 left-2 z-50 transition-[left] duration-200 ease-linear peer-data-[state=expanded]:left-[calc(var(--sidebar-width)+0.5rem)]">
+                            <SidebarTrigger />
+                        </div>
                         <div className="flex-1 flex flex-col">
-                            <div className="px-4 pt-2">
-                                <SidebarTrigger />
-                            </div>
                             <SearchResultsView
                                 columns={searchColumns}
                                 results={results}
