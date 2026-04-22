@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { TooltipProvider } from './components/ui/tooltip.tsx'
 
 // Initialize the JS client
 import { createClient } from '@supabase/supabase-js'
@@ -12,6 +13,8 @@ const supabase = createClient(
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <TooltipProvider>
+      <App />
+    </TooltipProvider>
   </StrictMode>,
 )
