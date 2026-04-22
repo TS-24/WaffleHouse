@@ -1,0 +1,5 @@
+name = "coursethreads"
+compatibility_date = "2026-04-22"
+
+[site]
+bucket = "./frontend"
