@@ -185,7 +185,7 @@ function FiltersSidebarInner({ setResults }: FiltersSidebarProps) {
                     </SidebarGroupContent>
                 </SidebarGroup>
                 <SidebarGroup>
-                    <SidebarGroupLabel>Day & Time</SidebarGroupLabel>
+                    <SidebarGroupLabel>Days & Time</SidebarGroupLabel>
                     <SidebarGroupContent className="flex flex-col gap-2">
                         <ToggleGroup
                             type="multiple"
