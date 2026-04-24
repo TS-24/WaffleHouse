@@ -1,25 +1,28 @@
 import { useState, useRef, useEffect } from "react";
-import type { Mode } from "@/lib/types";
-import { cn } from "@/lib/utils";
-// --- infinite-scroll change ---
-// No longer calls searchCourses() — that's done inside useInfiniteQuery in
-// Home.tsx. This component now only *declares intent*: it hands up the
-// search query via setSearchParams and the hook handles fetching/pagination.
-import type { SearchParams } from "@/hooks/useCourseSearch"
-// --- /infinite-scroll change ---
+import type { Mode, Course } from "@/lib/types";
+import { cn, formatSemester, sortSemestersDescending } from "@/lib/utils";
+import { searchCourses, getSemesters } from "@/services/search"
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 
 
 interface SearchCalendarBarProps {
   hasSearched: boolean;
   setHasSearched: (value: boolean) => void;
-  // --- infinite-scroll change ---
-  setSearchParams: (params: SearchParams) => void;
-  // --- /infinite-scroll change ---
+  setResults: (results: Course[]) => void;
   mode: Mode;
   setMode: (mode: Mode) => void;
 }
 
-export default function SearchCalendarBar({ hasSearched, setHasSearched, setSearchParams, mode, setMode }: SearchCalendarBarProps) {
+// Fallback list if the database call fails or returns nothing.
+const FALLBACK_SEMESTERS = [
+    "2026_Spring",
+    "2025_Fall",
+    "2025_Summer",
+    "2025_Spring",
+    "2024_Fall",
+];
+
+export default function SearchCalendarBar({ hasSearched, setHasSearched, setResults, mode, setMode }: SearchCalendarBarProps) {
     const [query, setQuery] = useState("")
     const [semesters, setSemesters] = useState<string[]>([])
     const [selectedSemester, setSelectedSemester] = useState<string>("")
@@ -59,13 +62,13 @@ export default function SearchCalendarBar({ hasSearched, setHasSearched, setSear
 
         if (!query.trim()) return;
 
-        // --- infinite-scroll change ---
-        // Just publish the search params. The hook re-keys on this value and
-        // fetches page 0; subsequent pages come from the IntersectionObserver
-        // in SearchResultsView.
-        setSearchParams({ kind: "search", query });
-        setHasSearched(true);
-        // --- /infinite-scroll change ---
+        try {
+            const results = await searchCourses(query, selectedSemester || null);
+            setResults(results);
+            setHasSearched(true);
+        } catch (err) {
+            console.error("Search error:", err);
+        }
     };
 
     return (
