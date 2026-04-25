@@ -86,6 +86,12 @@ export function buildSearchColumns(deps: SearchColumnDeps): ColumnDef<Course>[] 
         },
         {
             id: "time",
+            accessorFn: (course) => {
+                if (!Array.isArray(course.times) || course.times.length === 0) {
+                    return "TBD"
+                }
+                return formatCourseTimes(course.times, { compactDays: true })
+            },
             header: "Days & Time",
             meta: {
                 headerClassName: "min-w-48",
@@ -110,6 +116,7 @@ export function buildSearchColumns(deps: SearchColumnDeps): ColumnDef<Course>[] 
                 headerClassName: "w-10 min-w-10 px-1",
                 cellClassName: "w-10 min-w-10 px-1",
             },
+            enableSorting: false,
             cell: ({ row }) => {
                 const course = row.original;
                 const inSchedule = scheduledIds.has(course.id);

@@ -29,6 +29,11 @@ export function buildScheduleColumns(deps: ScheduleColumnDeps): ColumnDef<Course
         },
         {
             id: "professor",
+            accessorFn: (course) => {
+                const professors = course.professors;
+                if (!Array.isArray(professors)) return "";
+                return professors.map((p) => `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim()).join(", ");
+            },
             header: "Professor",
             cell: ({ row }) => {
                 const professors = row.original.professors;
@@ -38,6 +43,11 @@ export function buildScheduleColumns(deps: ScheduleColumnDeps): ColumnDef<Course
         },
         {
             id: "time",
+            accessorFn: (course) => {
+                const times = course.times;
+                if (!Array.isArray(times) || times.length === 0) return "";
+                return formatCourseTimes(times, { compactDays: true });
+            },
             header: "Days & Time",
             cell: ({ row }) => {
                 const times = row.original.times;
@@ -49,6 +59,7 @@ export function buildScheduleColumns(deps: ScheduleColumnDeps): ColumnDef<Course
             id: "remove",
             header: "",
             meta: { sticky: true },
+            enableSorting: false,
             cell: ({ row }) => (
                 <Button variant="destructive" size="sm" onClick={() => onRemove(row.original)}>
                     Remove

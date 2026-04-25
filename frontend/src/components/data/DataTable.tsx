@@ -3,9 +3,11 @@ import {
     type ColumnDef,
     flexRender,
     getCoreRowModel,
+    getSortedRowModel,
+    type SortingState,
     useReactTable,
 } from "@tanstack/react-table"
-import { ChevronRight } from "lucide-react"
+import { ArrowUpDown, ChevronDown, ChevronRight, ChevronUp } from "lucide-react"
 
 import {
     Table,
@@ -40,6 +42,7 @@ export function DataTable<TData, TValue>({
     density = "default",
 }: DataTableProps<TData, TValue>) {
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
+    const [sorting, setSorting] = useState<SortingState>([])
 
     useEffect(() => {
         setExpandedRows({})
@@ -49,7 +52,10 @@ export function DataTable<TData, TValue>({
         data,
         columns,
         getRowId,
+        state: { sorting },
+        onSortingChange: setSorting,
         getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
     })
 
     const isExpandable = Boolean(renderExpandedContent)
@@ -83,12 +89,30 @@ export function DataTable<TData, TValue>({
                                             isSticky && "sticky right-0 bg-background"
                                         )}
                                     >
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(
-                                                  header.column.columnDef.header,
-                                                  header.getContext()
-                                              )}
+                                        {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                                            <button
+                                                type="button"
+                                                onClick={header.column.getToggleSortingHandler()}
+                                                className="inline-flex items-center gap-1 font-medium text-foreground hover:text-foreground/80"
+                                            >
+                                                {flexRender(
+                                                    header.column.columnDef.header,
+                                                    header.getContext()
+                                                )}
+                                                {header.column.getIsSorted() === "asc" ? (
+                                                    <ChevronUp className="h-3.5 w-3.5" />
+                                                ) : header.column.getIsSorted() === "desc" ? (
+                                                    <ChevronDown className="h-3.5 w-3.5" />
+                                                ) : (
+                                                    <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
+                                                )}
+                                            </button>
+                                        ) : (
+                                            flexRender(
+                                                header.column.columnDef.header,
+                                                header.getContext()
+                                            )
+                                        )}
                                     </TableHead>
                                 );
                             })}
