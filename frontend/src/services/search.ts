@@ -30,7 +30,6 @@ export interface SearchPage {
 export const DEFAULT_PAGE_SIZE = 25
 
 function transformRawCourse(raw: RawCourseData): Course {
-    // Extract year from semester (e.g., "2025_Spring" -> 2025)
     const year = parseInt(raw.semester.split('_')[0], 10);
 
     return {
@@ -79,11 +78,6 @@ async function attachTimes(courses: Course[]): Promise<void> {
 }
 
 export async function getSemesters(): Promise<string[]> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        throw new Error("User is not authenticated");
-    }
-
     const { data, error } = await supabase
         .from('courses')
         .select('semester');
@@ -110,11 +104,6 @@ export async function searchCourses(
 
     if (!query.trim()) {
         return { courses: [], hasMore: false };
-    }
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        throw new Error("User is not authenticated");
     }
 
     try {
@@ -162,10 +151,6 @@ export interface FilterParams {
 }
 
 export async function fetchFilterOptions(): Promise<{ subjects: string[]; faculty: string[] }> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        throw new Error("User is not authenticated");
-    }
     const { data, error } = await supabase.from('courses').select('subject, faculty');
     if (error || !data) {
         console.error("Failed to fetch filter options:", error?.message);
@@ -189,11 +174,6 @@ export async function filterCourses(
 ): Promise<SearchPage> {
     const offset = opts.offset ?? 0;
     const limit = opts.limit ?? DEFAULT_PAGE_SIZE;
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        throw new Error("User is not authenticated");
-    }
 
     try {
         let query = supabase.from('courses').select('*');

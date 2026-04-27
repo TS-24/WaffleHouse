@@ -3,6 +3,7 @@ import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
 import type { Course } from "@/lib/types"
 import { DataTable } from "@/components/data/DataTable"
+import CourseRowDetails from "@/components/home/CourseRowDetails"
 
 interface SearchResultsViewProps {
     columns: ColumnDef<Course>[]
@@ -37,11 +38,14 @@ function SearchResultsViewInner({
     }, [fetchNextPage, hasNextPage, isFetchingNextPage, courses.length])
 
     return (
-        <div className="flex-1 flex flex-col items-center px-6 pt-8">
-            <div className="w-full max-w-4xl mx-auto">
+        <div className="flex-1 flex flex-col px-3 pt-5">
+            <div className="w-full max-w-6xl mx-auto">
                 <DataTable
                     columns={columns}
                     data={courses}
+                    getRowId={(course) => String(course.id)}
+                    renderExpandedContent={(course) => <CourseRowDetails course={course} />}
+                    density="compact"
                     loadMoreRef={hasNextPage ? loadMoreRef : undefined}
                     isFetchingMore={isFetchingNextPage}
                 />
