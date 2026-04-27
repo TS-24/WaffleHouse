@@ -217,7 +217,6 @@ export async function fetchFilterOptions(): Promise<{ subjects: string[]; facult
     };
 }
 
-export async function filterCourses(filters: FilterParams): Promise<Course[]> {
 export async function filterCourses(
     filters: FilterParams,
     opts: PaginationOpts = {},
