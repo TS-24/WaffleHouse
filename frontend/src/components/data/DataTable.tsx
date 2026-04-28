@@ -3,9 +3,11 @@ import {
     type ColumnDef,
     flexRender,
     getCoreRowModel,
+    getSortedRowModel,
+    type SortingState,
     useReactTable,
 } from "@tanstack/react-table"
-import { ChevronRight } from "lucide-react"
+import { ArrowUpDown, ChevronDown, ChevronRight, ChevronUp } from "lucide-react"
 
 import {
     Table,
@@ -24,6 +26,8 @@ interface DataTableProps<TData, TValue> {
     getRowId?: (originalRow: TData, index: number) => string
     renderExpandedContent?: (row: TData) => ReactNode
     density?: "default" | "compact"
+    loadMoreRef?: React.Ref<HTMLTableRowElement>
+    isFetchingMore?: boolean
 }
 
 interface ColumnMeta {
@@ -38,8 +42,11 @@ export function DataTable<TData, TValue>({
     getRowId,
     renderExpandedContent,
     density = "default",
+    loadMoreRef,
+    isFetchingMore,
 }: DataTableProps<TData, TValue>) {
     const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
+    const [sorting, setSorting] = useState<SortingState>([])
 
     useEffect(() => {
         setExpandedRows({})
@@ -49,7 +56,10 @@ export function DataTable<TData, TValue>({
         data,
         columns,
         getRowId,
+        state: { sorting },
+        onSortingChange: setSorting,
         getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
     })
 
     const isExpandable = Boolean(renderExpandedContent)
@@ -63,6 +73,8 @@ export function DataTable<TData, TValue>({
             [rowId]: !current[rowId],
         }))
     }
+
+    const rows = table.getRowModel().rows
 
     return (
         <div className="rounded-md border">
@@ -83,12 +95,30 @@ export function DataTable<TData, TValue>({
                                             isSticky && "sticky right-0 bg-background"
                                         )}
                                     >
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(
-                                                  header.column.columnDef.header,
-                                                  header.getContext()
-                                              )}
+                                        {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                                            <button
+                                                type="button"
+                                                onClick={header.column.getToggleSortingHandler()}
+                                                className="inline-flex items-center gap-1 font-medium text-foreground hover:text-foreground/80"
+                                            >
+                                                {flexRender(
+                                                    header.column.columnDef.header,
+                                                    header.getContext()
+                                                )}
+                                                {header.column.getIsSorted() === "asc" ? (
+                                                    <ChevronUp className="h-3.5 w-3.5" />
+                                                ) : header.column.getIsSorted() === "desc" ? (
+                                                    <ChevronDown className="h-3.5 w-3.5" />
+                                                ) : (
+                                                    <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
+                                                )}
+                                            </button>
+                                        ) : (
+                                            flexRender(
+                                                header.column.columnDef.header,
+                                                header.getContext()
+                                            )
+                                        )}
                                     </TableHead>
                                 );
                             })}
@@ -96,8 +126,8 @@ export function DataTable<TData, TValue>({
                     ))}
                 </TableHeader>
                 <TableBody>
-                    {table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row) => {
+                    {rows?.length ? (
+                        rows.map((row) => {
                             const isExpanded = Boolean(expandedRows[row.id])
 
                             return (
@@ -161,6 +191,21 @@ export function DataTable<TData, TValue>({
                                 className="h-24 text-center"
                             >
                                 No results.
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    {loadMoreRef && rows.length > 0 && (
+                        <TableRow ref={loadMoreRef} aria-hidden>
+                            <TableCell colSpan={columns.length} className="h-2 p-0" />
+                        </TableRow>
+                    )}
+                    {isFetchingMore && (
+                        <TableRow>
+                            <TableCell
+                                colSpan={columns.length}
+                                className="h-12 text-center text-muted-foreground text-sm"
+                            >
+                                Loading more…
                             </TableCell>
                         </TableRow>
                     )}

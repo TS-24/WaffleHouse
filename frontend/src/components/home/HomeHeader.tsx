@@ -4,11 +4,12 @@ import ThemePopoverButton from "@/components/theme/ThemePopoverButton"
 import UserAvatarButton from "@/components/home/UserAvatarButton"
 import type { Mode, Course } from "@/lib/types"
 import type { CourseEvent } from "@/components/calendar/BigCalendar"
+import type { SearchParams } from "@/hooks/useCourseSearch"
 
 interface HomeHeaderProps {
     hasSearched: boolean
     setHasSearched: (v: boolean) => void
-    setResults: (results: Course[]) => void
+    setSearchParams: (params: SearchParams) => void
     mode: Mode
     setMode: (mode: Mode) => void
     schedule: Course[]
@@ -23,7 +24,7 @@ export default function HomeHeader(props: HomeHeaderProps) {
             <SearchCalendarBar
                 hasSearched={props.hasSearched}
                 setHasSearched={props.setHasSearched}
-                setResults={props.setResults}
+                setSearchParams={props.setSearchParams}
                 mode={props.mode}
                 setMode={props.setMode}
             />
