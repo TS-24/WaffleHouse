@@ -63,20 +63,42 @@ function parseTimeParts(time: string): [number, number, number] {
   return [Number(hourRaw), Number(minuteRaw), Number(secondRaw)];
 }
 
-function getTermEndDate(course: Course): Date {
+function getNthWeekdayOfMonth(
+  year: number,
+  monthIndex: number,
+  weekday: number,
+  occurrence: number
+): Date {
+  const firstOfMonth = new Date(year, monthIndex, 1);
+  const firstWeekdayOffset = (weekday - firstOfMonth.getDay() + 7) % 7;
+  const dayOfMonth = 1 + firstWeekdayOffset + (occurrence - 1) * 7;
+  return new Date(year, monthIndex, dayOfMonth);
+}
+
+function getLastWeekdayOfMonth(year: number, monthIndex: number, weekday: number): Date {
+  const lastOfMonth = new Date(year, monthIndex + 1, 0);
+  const offset = (lastOfMonth.getDay() - weekday + 7) % 7;
+  return new Date(year, monthIndex, lastOfMonth.getDate() - offset);
+}
+
+function getSemesterStartDate(course: Course): Date {
   const year = Number(course.year) || new Date().getFullYear();
   const semester = String(course.semester || "").toLowerCase();
 
   if (semester.includes("spring")) {
-    return new Date(year, 4, 15, 23, 59, 59);
+    // Third Monday in January.
+    return getNthWeekdayOfMonth(year, 0, 1, 3);
   }
-  if (semester.includes("summer")) {
-    return new Date(year, 7, 15, 23, 59, 59);
+  if (semester.includes("fall")) {
+    // Last Monday in August.
+    return getLastWeekdayOfMonth(year, 7, 1);
   }
-  return new Date(year, 11, 15, 23, 59, 59);
+
+  // Fallback for unrecognized terms.
+  return getNthWeekdayOfMonth(year, 0, 1, 3);
 }
 
-function getDateForWeekdayAndTime(icalDay: string, time: string): Date {
+function getDateForWeekdayAndTime(weekStart: Date, icalDay: string, time: string): Date {
   const weekdayIndexByIcal: Record<string, number> = {
     SU: 0,
     MO: 1,
@@ -87,11 +109,10 @@ function getDateForWeekdayAndTime(icalDay: string, time: string): Date {
     SA: 6,
   };
 
-  const now = new Date();
   const targetDay = weekdayIndexByIcal[icalDay];
   const [hours, minutes, seconds] = parseTimeParts(time);
 
-  const base = new Date(now);
+  const base = new Date(weekStart);
   base.setHours(0, 0, 0, 0);
   const diff = (targetDay - base.getDay() + 7) % 7;
   base.setDate(base.getDate() + diff);
@@ -105,9 +126,9 @@ function buildEvent(course: Course, slot: Timeslot, index: number): string[] | n
   const icalDay = DAY_TO_ICAL[normalizedDay];
   if (!icalDay) return null;
 
-  const startDate = getDateForWeekdayAndTime(icalDay, String(slot.start_time));
-  const endDate = getDateForWeekdayAndTime(icalDay, String(slot.end_time));
-  const termEnd = getTermEndDate(course);
+  const semesterStart = getSemesterStartDate(course);
+  const startDate = getDateForWeekdayAndTime(semesterStart, icalDay, String(slot.start_time));
+  const endDate = getDateForWeekdayAndTime(semesterStart, icalDay, String(slot.end_time));
 
   const nowStamp = formatDateStamp(new Date());
   const uid = `${course.id}-${index}-${Date.now()}@wafflehouse`;
@@ -118,9 +139,9 @@ function buildEvent(course: Course, slot: Timeslot, index: number): string[] | n
     "BEGIN:VEVENT",
     `UID:${uid}`,
     `DTSTAMP:${nowStamp}`,
-    `DTSTART:${formatLocalDateTime(startDate)}`,
-    `DTEND:${formatLocalDateTime(endDate)}`,
-    `RRULE:FREQ=WEEKLY;BYDAY=${icalDay};UNTIL=${formatDateStamp(termEnd)}`,
+    `DTSTART;TZID=America/New_York:${formatLocalDateTime(startDate)}`,
+    `DTEND;TZID=America/New_York:${formatLocalDateTime(endDate)}`,
+    `RRULE:FREQ=WEEKLY;BYDAY=${icalDay};COUNT=16`,
     `SUMMARY:${escapeText(summary)}`,
     `DESCRIPTION:${escapeText(description)}`,
     `LOCATION:${escapeText(course.location || "TBD")}`,
@@ -135,6 +156,24 @@ export function buildScheduleIcs(schedule: Course[]): string {
     "CALSCALE:GREGORIAN",
     "PRODID:-//WaffleHouse//Schedule Export//EN",
     "METHOD:PUBLISH",
+    "BEGIN:VTIMEZONE",
+    "TZID:America/New_York",
+    "X-LIC-LOCATION:America/New_York",
+    "BEGIN:DAYLIGHT",
+    "TZOFFSETFROM:-0500",
+    "TZOFFSETTO:-0400",
+    "TZNAME:EDT",
+    "DTSTART:19700308T020000",
+    "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU",
+    "END:DAYLIGHT",
+    "BEGIN:STANDARD",
+    "TZOFFSETFROM:-0400",
+    "TZOFFSETTO:-0500",
+    "TZNAME:EST",
+    "DTSTART:19701101T020000",
+    "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU",
+    "END:STANDARD",
+    "END:VTIMEZONE",
   ];
 
   schedule.forEach((course) => {
